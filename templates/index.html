@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Attendance System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+</head>
+
+<body class="fade-in">
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="{{ url_for('home') }}" class="navbar-brand">Smart Attendance</a>
+      <div class="navbar-links">
+        <a href="{{ url_for('home') }}">Home</a>
+        {# Links for non-logged-in users #}
+        {% if not session.get('logged_in') %}
+            <a href="{{ url_for('register') }}">Register</a>
+            <a href="{{ url_for('login') }}">Login</a>
+            {# IMPORTANT: "Download Attendance Report" is NOT here anymore #}
+        {% endif %}
+        {# Links for logged-in users #}
+        {% if session.get('logged_in') %}
+            {# Role-specific links for non-admin users #}
+            {% if session.get('role') != 'admin' %}
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('attendance') }}">My Attendance</a>
+            {% endif %}
+            {# Role-specific links for admin users #}
+            {% if session.get('role') == 'admin' %}
+                <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+                <a href="{{ url_for('enroll') }}">Enroll Face</a>
+            {% endif %}
+            {# "Download Attendance Report" is now placed here, for ALL logged-in users #}
+            <a href="{{ url_for('static', filename='attendance_log.csv') }}" download>Download Attendance Report</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <div class="hero-section" data-aos="fade-up" data-aos-delay="100">
+     <div class="hero-content">
+    <h1>Welcome to Smart Attendance System</h1>
+    <p class="subtitle">Revolutionizing attendance tracking with AI-powered facial recognition.</p>
+    <div class="hero-buttons"> 
+        {% if not session.get('logged_in') %}
+          <a href="{{ url_for('register') }}" class="button primary">Get Started</a>
+          <a href="{{ url_for('login') }}" class="button secondary">Login</a>
+      {% else %}
+          <a href="{{ url_for('dashboard') }}" class="button primary">Go to Dashboard</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+  <div class="container features-section" data-aos="fade-up" data-aos-delay="200">
+    <h2>Key Features</h2>
+    <div class="feature-cards">
+      <div class="feature-card" data-aos="flip-left" data-aos-delay="100">
+        <h3>
+          <img src="{{ url_for('static', filename='icons/icon-face-recognition.png') }}" alt="Face Recognition">
+          Facial Recognition
+        </h3>
+        <p>Fast and accurate attendance marking using advanced face detection.</p>
+      </div>
+      <div class="feature-card" data-aos="flip-left" data-aos-delay="200">
+        <h3>
+          <img src="{{ url_for('static', filename='icons/icon-secure.png') }}" alt="Secure">
+          Secure & Reliable
+        </h3>
+        <p>Ensure data integrity and privacy with robust security measures.</p>
+      </div>
+      <div class="feature-card" data-aos="flip-left" data-aos-delay="300">
+        <h3>
+          <img src="{{ url_for('static', filename='icons/icon-dashboard.png') }}" alt="Dashboard">
+          Intuitive Dashboard
+        </h3>
+        <p>Easy-to-use interface for monitoring attendance and managing users.</p>
+      </div>
+      <div class="feature-card" data-aos="flip-left" data-aos-delay="400">
+        <h3>
+          <img src="{{ url_for('static', filename='icons/icon-reporting.png') }}" alt="Reporting">
+          Comprehensive Reporting
+        </h3>
+        <p>Generate detailed attendance reports with a click of a button.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="call-to-action-section" data-aos="zoom-in" data-aos-delay="300">
+    <h2>Ready to streamline your attendance?</h2>
+    <p>Join Smart Attendance System today and experience the future of attendance management.</p>
+    <a href="{{ url_for('register') }}" class="button primary">Get Started Free</a>
+  </div>
+
+  <footer class="footer" data-aos="fade-up" data-aos-delay="400">
+    <p>&copy; 2025 Smart Attendance System. All rights reserved.</p>
+    <p>Designed by: <strong>Priyadeep Mitra</strong></p>
+
+    <div class="footer-row">
+      <div class="footer-buttons">
+        <button onclick="toggleSection('terms-content')">Terms & Conditions</button>
+        <button onclick="toggleSection('privacy-content')">Privacy Policy</button>
+      </div>
+      <div class="footer-contact">
+        <h4>Contact</h4>
+        <p>📧 <a href="mailto:priyadeepmitra2017@gmail.com">priyadeepmitra2017@gmail.com</a></p>
+        <p>📞 <a href="tel:+918809463731">8809463731</a></p>
+      </div>
+    </div>
+
+    <div id="terms-content" class="footer-toggle-content hidden">
+      <h4>Terms & Conditions</h4>
+      <p>Use of this system implies agreement to data collection for attendance only. Misuse is prohibited.</p>
+    </div>
+
+    <div id="privacy-content" class="footer-toggle-content hidden">
+      <h4>Privacy Policy</h4>
+      <p>Facial data is securely stored and not shared with third parties. You may request data removal anytime.</p>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({
+      duration: 800,
+      once: true,
+      offset: 50,
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = document.querySelector('.container');
+      if (container) {
+        const navbarHeight = document.querySelector('.navbar').offsetHeight;
+        container.style.marginTop = `${navbarHeight + 40}px`;
+      }
+    });
+
+    function toggleSection(id) {
+      const section = document.getElementById(id);
+      const isVisible = section.classList.contains('show');
+
+      section.classList.toggle('show');
+
+      if (!isVisible) {
+        setTimeout(() => {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  </script>
+</body>
+</html>

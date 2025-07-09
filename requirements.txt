@@ -1,0 +1,6 @@
+Flask
+Werkzeug
+Pillow
+numpy
+face_recognition
+opencv-python
