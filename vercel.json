@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/",                  "dest": "/frontend/index.html" },
+    { "src": "/student",           "dest": "/frontend/student.html" },
+    { "src": "/login",             "dest": "/frontend/login.html" },
+    { "src": "/forgot-password",   "dest": "/frontend/forgot-password.html" },
+    { "src": "/admin",             "dest": "/frontend/admin/dashboard.html" },
+    { "src": "/admin/students",    "dest": "/frontend/admin/manage-students.html" },
+    { "src": "/admin/attendance",  "dest": "/frontend/admin/attendance.html" },
+    { "src": "/admin/register",    "dest": "/frontend/admin/register.html" },
+    { "src": "/(.*)",              "dest": "/frontend/$1" }
+  ]
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="FaceID Pro — Admin Dashboard">
+  <title>Admin Dashboard | FaceID Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css"/>
+  <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+  <canvas id="particleCanvas"></canvas>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><i class="fas fa-eye"></i></div>
+      <span class="sidebar-logo-text">FaceID <span class="accent">Pro</span></span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../index.html" class="nav-item"><i class="fas fa-house"></i><span>Home</span></a>
+      <div class="nav-section-label">STUDENT</div>
+      <a href="../student.html" class="nav-item"><i class="fas fa-camera"></i><span>Student Panel</span></a>
+      <div class="nav-section-label">ADMIN</div>
+      <a href="dashboard.html" class="nav-item active"><i class="fas fa-gauge-high"></i><span>Admin Panel</span></a>
+      <a href="manage-students.html" class="nav-item"><i class="fas fa-users"></i><span>Manage Students</span></a>
+      <a href="attendance.html" class="nav-item"><i class="fas fa-table-list"></i><span>All Attendance</span></a>
+      <a href="register.html" class="nav-item"><i class="fas fa-user-shield"></i><span>Add Admin</span></a>
+      <div class="nav-section-label">ACCOUNT</div>
+      <a href="#" class="nav-item" id="exportCsvNav"><i class="fas fa-download"></i><span>Export CSV</span></a>
+      <a href="#" class="nav-item nav-logout" id="logoutNav"><i class="fas fa-right-from-bracket"></i><span>Logout</span></a>
+    </nav>
+  </aside>
+
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <main class="main-content" id="mainContent">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1>⚙️ Admin Control Panel</h1>
+          <p>Manage student enrollment, photos, and attendance records</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="#" class="btn btn-secondary btn-sm" id="adminExportCsv"><i class="fas fa-download"></i> Export CSV</a>
+          <a href="attendance.html" class="btn btn-secondary btn-sm" id="adminViewAttendance"><i class="fas fa-table-list"></i> All Records</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Action Cards -->
+      <div class="action-grid" data-aos="fade-up">
+        <div class="action-card" style="border-color:rgba(0,212,255,0.2);background:linear-gradient(135deg,rgba(0,212,255,0.05),rgba(0,212,255,0.02));">
+          <div class="action-card-icon" style="background:var(--accent-dim);color:var(--accent);"><i class="fas fa-users"></i></div>
+          <h3>Manage Students</h3>
+          <p>Upload student photos, enter name &amp; roll number. The system encodes their face automatically.</p>
+          <a href="manage-students.html" class="btn btn-primary btn-sm" id="adminManageStudents"><i class="fas fa-images"></i> Upload Photos</a>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-icon" style="background:rgba(16,217,126,0.1);color:var(--success);"><i class="fas fa-calendar-check"></i></div>
+          <h3>Attendance Logs</h3>
+          <p>View and filter complete attendance records across all students.</p>
+          <a href="attendance.html" class="btn btn-success btn-sm" id="adminLogsBtn"><i class="fas fa-eye"></i> View Logs</a>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-icon" style="background:rgba(251,191,36,0.1);color:var(--warning);"><i class="fas fa-file-csv"></i></div>
+          <h3>Export Report</h3>
+          <p>Download a complete CSV attendance report for all students.</p>
+          <a href="#" class="btn btn-sm" id="adminExportBtn" style="background:rgba(251,191,36,0.1);color:var(--warning);border:1px solid rgba(251,191,36,0.2);"><i class="fas fa-download"></i> Download CSV</a>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-icon" style="background:rgba(124,58,237,0.12);color:#a78bfa;"><i class="fas fa-user-shield"></i></div>
+          <h3>Add Admin User</h3>
+          <p>Create a new administrator account for the system.</p>
+          <a href="register.html" class="btn btn-secondary btn-sm" id="adminRegisterBtn"><i class="fas fa-plus"></i> Add Admin</a>
+        </div>
+      </div>
+
+      <!-- Info Banner -->
+      <div data-aos="fade-up" data-aos-delay="100"
+           style="padding:18px 24px;background:var(--accent-dim);border:1px solid rgba(0,212,255,0.15);border-radius:var(--radius-md);display:flex;align-items:flex-start;gap:14px;margin-bottom:8px;">
+        <i class="fas fa-circle-info" style="color:var(--accent);font-size:1.2rem;flex-shrink:0;margin-top:2px;"></i>
+        <div>
+          <p style="font-size:0.85rem;font-weight:600;color:var(--accent);margin-bottom:4px;">How It Works</p>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;line-height:1.6;">
+            1. Go to <strong>Manage Students</strong> → Upload a photo for each student → Enter their <strong>Name &amp; Roll Number</strong>.<br>
+            2. Students open the Student Panel → The camera <strong>automatically identifies them</strong> and marks attendance.
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);" data-aos="fade-up" data-aos-delay="150">
+        <div class="stat-card accent">
+          <div class="stat-card-icon"><i class="fas fa-users"></i></div>
+          <div class="stat-card-value" id="totalStudents">—</div>
+          <div class="stat-card-label">Enrolled Students</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon"><i class="fas fa-calendar-day"></i></div>
+          <div class="stat-card-value" id="todayAttendance">—</div>
+          <div class="stat-card-label">Today's Attendance</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon"><i class="fas fa-database"></i></div>
+          <div class="stat-card-value" id="totalRecords">—</div>
+          <div class="stat-card-label">Total Records</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    const BACKEND_URL = 'YOUR_BACKEND_URL';
+
+    // Update all backend links
+    document.getElementById('adminExportCsv').href = BACKEND_URL + '/download_attendance_csv';
+    document.getElementById('exportCsvNav').href   = BACKEND_URL + '/download_attendance_csv';
+    document.getElementById('adminExportBtn').href = BACKEND_URL + '/download_attendance_csv';
+    document.getElementById('logoutNav').href      = BACKEND_URL + '/logout';
+
+    AOS.init({ duration: 600, once: true, offset: 30, easing: 'ease-out-cubic' });
+    document.getElementById('sidebarToggle').addEventListener('click', () =>
+      document.getElementById('sidebar').classList.toggle('open'));
+
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+    resize();window.addEventListener('resize',resize);
+    class Particle{constructor(){this.reset();}reset(){this.x=Math.random()*canvas.width;this.y=Math.random()*canvas.height;this.size=Math.random()*1.5+0.3;this.speedX=(Math.random()-.5)*.3;this.speedY=(Math.random()-.5)*.3;this.opacity=Math.random()*.4+.05;}update(){this.x+=this.speedX;this.y+=this.speedY;if(this.x<0||this.x>canvas.width||this.y<0||this.y>canvas.height)this.reset();}draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2);ctx.fillStyle=`rgba(0,212,255,${this.opacity})`;ctx.fill();}}
+    for(let i=0;i<80;i++)particles.push(new Particle());
+    (function loop(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{p.update();p.draw();});requestAnimationFrame(loop);})();
+
+    async function loadAdminStats() {
+      try {
+        const studRes = await fetch(BACKEND_URL + '/get_enrolled_students');
+        const studData = await studRes.json();
+        if (studData.status === 'success') {
+          document.getElementById('totalStudents').textContent = studData.students.length;
+        }
+        const attRes = await fetch(BACKEND_URL + '/get_attendance_data');
+        const attData = await attRes.json();
+        if (attData.status === 'success') {
+          document.getElementById('todayAttendance').textContent = attData.today_count ?? 0;
+          const total = (attData.dates || []).reduce((a,_,i) => a + (attData.counts[i]||0), 0);
+          document.getElementById('totalRecords').textContent = total;
+        }
+      } catch(e) { console.error('Admin stats error:', e); }
+    }
+    document.addEventListener('DOMContentLoaded', loadAdminStats);
+  </script>
+</body>
+</html>
