@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "version": 2,
   "builds": [
     {
@@ -16,5 +17,18 @@
     { "src": "/admin/attendance",  "dest": "/frontend/admin/attendance.html" },
     { "src": "/admin/register",    "dest": "/frontend/admin/register.html" },
     { "src": "/(.*)",              "dest": "/frontend/$1" }
+=======
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/student",          "destination": "/student.html" },
+    { "source": "/login",            "destination": "/login.html" },
+    { "source": "/forgot-password",  "destination": "/forgot-password.html" },
+    { "source": "/reset-password",   "destination": "/reset-password.html" },
+    { "source": "/admin",            "destination": "/admin/dashboard.html" },
+    { "source": "/admin/students",   "destination": "/admin/manage-students.html" },
+    { "source": "/admin/attendance", "destination": "/admin/attendance.html" },
+    { "source": "/admin/register",   "destination": "/admin/register.html" }
+>>>>>>> fff462654bc2fdc88a58bf5a498cf558143c998f
   ]
 }

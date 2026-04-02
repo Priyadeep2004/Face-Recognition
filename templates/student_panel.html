@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Student Attendance Panel{% endblock %}
+
+{% block head_extra %}
+<style>
+  .student-panel-hero {
+    background: linear-gradient(135deg, rgba(0,212,255,.1) 0%, rgba(124,58,237,.07) 100%);
+    border: 1px solid rgba(0,212,255,.15);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .student-avatar-ring {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: white; flex-shrink: 0;
+    box-shadow: 0 0 24px rgba(0,212,255,.35);
+    animation: pulse-glow 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(0,212,255,.3); }
+    50%        { box-shadow: 0 0 36px rgba(0,212,255,.6); }
+  }
+  .student-hero-title { font-size: 1.25rem; font-weight: 800; color: var(--text-primary); }
+  .student-hero-sub   { font-size: .82rem; color: var(--text-secondary); margin-top: 4px; }
+
+  .step-pills {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;
+  }
+  .step-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.04); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px;
+    font-size: .72rem; font-weight: 600; color: var(--text-secondary);
+  }
+  .step-pill-num {
+    width: 18px; height: 18px;
+    background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: .6rem; font-weight: 800; color: white; flex-shrink: 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1>🎓 Student Attendance Panel</h1>
+      <p>Use the camera to mark your attendance — no login required</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div style="font-size:.8rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
+        <i class="fas fa-calendar-day" style="color:var(--accent);"></i>
+        Today: <strong id="todayCountLabel" style="color:var(--accent);">—</strong>
+      </div>
+      <a href="{{ url_for('home') }}" class="btn btn-sm" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text-secondary);padding:6px 14px;font-size:.78rem;">
+        <i class="fas fa-arrow-left"></i> Home
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <!-- Instructions Banner -->
+  <div class="student-panel-hero" data-aos="fade-down">
+    <div class="student-avatar-ring">
+      <i class="fas fa-user-graduate"></i>
+    </div>
+    <div style="flex:1;">
+      <div class="student-hero-title">Mark Your Attendance in 3 Easy Steps</div>
+      <div class="student-hero-sub">Face the camera clearly · Make sure you are enrolled · Click Capture & Identify</div>
+      <div class="step-pills">
+        <div class="step-pill">
+          <div class="step-pill-num">1</div>
+          <i class="fas fa-play" style="color:var(--accent);font-size:.65rem;"></i> Start Camera
+        </div>
+        <div class="step-pill">
+          <div class="step-pill-num">2</div>
+          <i class="fas fa-face-smile" style="color:var(--success);font-size:.65rem;"></i> Face the Camera
+        </div>
+        <div class="step-pill">
+          <div class="step-pill-num">3</div>
+          <i class="fas fa-camera" style="color:var(--warning);font-size:.65rem;"></i> Capture & Identify
+        </div>
+      </div>
+    </div>
+    <div style="text-align:right;flex-shrink:0;">
+      <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">System Status</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;color:var(--success);">
+        <div style="width:8px;height:8px;background:var(--success);border-radius:50%;animation:pulse 1.5s infinite;"></div>
+        Online & Ready
+      </div>
+    </div>
+  </div>
+
+  <!-- Recognition Result Card -->
+  <div id="recognitionCard" style="display:none;" data-aos="fade-down">
+    <div style="background:linear-gradient(135deg,rgba(16,217,126,0.14),rgba(0,212,255,0.08));
+                border:1px solid rgba(16,217,126,0.3);border-radius:var(--radius-lg);
+                padding:28px 32px;margin-bottom:24px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+                box-shadow:0 8px 40px rgba(16,217,126,.08);">
+      <div id="recognizedAvatar"
+           style="width:70px;height:70px;background:linear-gradient(135deg,var(--accent-2),var(--accent));
+                  border-radius:50%;display:flex;align-items:center;justify-content:center;
+                  font-size:1.8rem;font-weight:800;color:white;flex-shrink:0;
+                  box-shadow:0 0 30px rgba(0,212,255,.4);">?</div>
+      <div style="flex:1;min-width:200px;">
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--success);margin-bottom:5px;">
+          <i class="fas fa-circle-check"></i> Attendance Marked Successfully
+        </div>
+        <div id="recognizedName" style="font-size:1.7rem;font-weight:900;color:var(--text-primary);line-height:1.1;">—</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap;">
+          <span style="font-family:var(--font-mono);font-size:.9rem;color:var(--accent);
+                       background:var(--accent-dim);padding:4px 14px;border-radius:24px;
+                       border:1px solid rgba(0,212,255,.2);font-weight:700;">
+            Roll No: <span id="recognizedRoll">—</span>
+          </span>
+          <span style="font-size:.82rem;color:var(--text-muted);">
+            <i class="fas fa-clock" style="color:var(--accent);"></i> <span id="recognizedTime">—</span>
+          </span>
+        </div>
+      </div>
+      <i class="fas fa-circle-check" style="font-size:3rem;color:var(--success);opacity:.7;flex-shrink:0;"></i>
+    </div>
+  </div>
+
+  <!-- Main Camera Grid -->
+  <div class="dashboard-grid" data-aos="fade-up" data-aos-delay="100">
+
+    <!-- Camera Panel -->
+    <div class="camera-panel">
+      <div class="camera-header">
+        <div class="camera-title">
+          <div class="camera-status-dot" id="statusDot"></div>
+          Live Camera Feed
+        </div>
+        <span id="liveBadge" style="display:none;" class="badge badge-warning">
+          <i class="fas fa-spinner fa-spin" style="font-size:10px;"></i> Processing…
+        </span>
+      </div>
+
+      <div class="camera-feed">
+        <video id="videoElement" autoplay playsinline muted></video>
+        <canvas id="overlayCanvas"></canvas>
+        <div class="flash-overlay" id="flashEffect"></div>
+        <div class="status-bar" id="statusBar">
+          <div class="spinner" id="statusSpinner" style="display:none;"></div>
+          <i class="fas fa-circle-info" id="statusIcon"></i>
+          <span id="statusText">Click "Start Camera" to begin</span>
+        </div>
+        <div class="camera-placeholder" id="cameraPlaceholder">
+          <i class="fas fa-camera"></i>
+          <span>Camera not active</span>
+          <span style="font-size:.75rem;opacity:.6;">Click Start Camera below</span>
+        </div>
+      </div>
+
+      <div class="camera-controls">
+        <button class="btn btn-primary" id="startButton" style="min-width:145px;">
+          <i class="fas fa-play"></i> Start Camera
+        </button>
+        <button class="btn btn-success" id="captureButton" style="display:none;min-width:170px;" disabled>
+          <i class="fas fa-camera"></i> Capture & Identify
+        </button>
+        <button class="btn btn-danger btn-sm" id="stopButton" style="display:none;">
+          <i class="fas fa-stop"></i>
+        </button>
+        <div id="processingSpinner" style="display:none;margin-left:auto;"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="side-panel">
+      <!-- Today's log -->
+      <div class="attendance-log">
+        <div class="attendance-log-header">
+          <h3><i class="fas fa-list-check" style="color:var(--accent);font-size:14px;"></i> Today's Log</h3>
+          <span id="todayBadge" style="font-size:.72rem;color:var(--text-muted);">0 records</span>
+        </div>
+        <div class="attendance-log-body" id="attendanceLogBody">
+          <div class="log-empty">
+            <i class="fas fa-inbox"></i>
+            No records today yet.
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Card -->
+      <div class="card" style="padding:20px;border-left:3px solid var(--accent);">
+        <h4 style="font-size:.82rem;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-circle-info" style="color:var(--accent);"></i> Important Info
+        </h4>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:9px;">
+          <li style="font-size:.76rem;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-check" style="color:var(--success);margin-top:2px;flex-shrink:0;font-size:.7rem;"></i>
+            You must be enrolled by admin before this works
+          </li>
+          <li style="font-size:.76rem;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-check" style="color:var(--success);margin-top:2px;flex-shrink:0;font-size:.7rem;"></i>
+            Good lighting &amp; clear face view required
+          </li>
+          <li style="font-size:.76rem;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-check" style="color:var(--success);margin-top:2px;flex-shrink:0;font-size:.7rem;"></i>
+            5-minute cooldown between re-captures
+          </li>
+          <li style="font-size:.76rem;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-check" style="color:var(--success);margin-top:2px;flex-shrink:0;font-size:.7rem;"></i>
+            Contact admin if face not recognized
+          </li>
+        </ul>
+      </div>
+
+      <!-- Tips Card -->
+      <div class="card" style="padding:20px;">
+        <h4 style="font-size:.82rem;font-weight:700;color:var(--text-primary);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-lightbulb" style="color:var(--warning);"></i> Tips for Best Results
+        </h4>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:7px;">
+          {% for tip in [
+            'Even, direct lighting on your face',
+            'Look straight into the camera',
+            'Remove glasses or face coverings',
+            'Stay still during capture',
+            'Keep face within camera frame'
+          ] %}
+          <li style="font-size:.76rem;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-angle-right" style="color:var(--accent);margin-top:2px;flex-shrink:0;font-size:.7rem;"></i>{{ tip }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<canvas id="canvasElement" style="display:none;"></canvas>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+  async function loadPublicStats() {
+    try {
+      const res  = await fetch('/get_attendance_data');
+      const data = await res.json();
+      if (data.status !== 'success') return;
+
+      const lbl = document.getElementById('todayCountLabel');
+      if (lbl) lbl.textContent = data.today_count ?? 0;
+
+      const badge = document.getElementById('todayBadge');
+      if (badge) badge.textContent = (data.today_count ?? 0) + ' records';
+
+      const logBody = document.getElementById('attendanceLogBody');
+      if (logBody && data.recent && data.recent.length > 0) {
+        logBody.innerHTML = '';
+        data.recent.forEach(r => {
+          const el = document.createElement('div');
+          el.className = 'log-entry';
+          el.innerHTML = `
+            <div class="log-entry-dot"></div>
+            <div class="log-entry-info">
+              <div class="log-entry-name">${r.name || '—'}</div>
+              <div class="log-entry-time">
+                ${r.roll ? '<span style="font-family:var(--font-mono);color:var(--accent);font-size:.72rem;">Roll: ' + r.roll + '</span> · ' : ''}
+                ${r.time || ''}
+              </div>
+            </div>
+            <i class="fas fa-check-circle" style="color:var(--success);font-size:13px;flex-shrink:0;"></i>
+          `;
+          logBody.appendChild(el);
+        });
+      }
+    } catch(e) { console.error(e); }
+  }
+  document.addEventListener('DOMContentLoaded', loadPublicStats);
+</script>
+{% endblock %}

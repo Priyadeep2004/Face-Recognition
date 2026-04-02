@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="FaceID Pro — Industrial-grade face recognition attendance system powered by AI.">
+  <title>{% block title %}FaceID Pro{% endblock %} | FaceID Pro</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+  <!-- Particle bg canvas -->
+  <canvas id="particleCanvas"></canvas>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <i class="fas fa-eye"></i>
+      </div>
+      <span class="sidebar-logo-text">FaceID <span class="accent">Pro</span></span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('home') }}" class="nav-item {% if request.endpoint == 'home' %}active{% endif %}">
+        <i class="fas fa-house"></i>
+        <span>Home</span>
+      </a>
+
+      <div class="nav-section-label">STUDENT</div>
+      <a href="{{ url_for('student_panel') }}" class="nav-item {% if request.endpoint == 'student_panel' %}active{% endif %}">
+        <i class="fas fa-camera"></i>
+        <span>Student Panel</span>
+      </a>
+
+      {% if session.get('logged_in') and session.get('role') == 'admin' %}
+          <div class="nav-section-label">ADMIN</div>
+          <a href="{{ url_for('admin_dashboard') }}" class="nav-item {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+            <i class="fas fa-gauge-high"></i>
+            <span>Admin Panel</span>
+          </a>
+          <a href="{{ url_for('manage_students') }}" class="nav-item {% if request.endpoint == 'manage_students' %}active{% endif %}">
+            <i class="fas fa-users"></i>
+            <span>Manage Students</span>
+          </a>
+          <a href="{{ url_for('attendance') }}" class="nav-item {% if request.endpoint == 'attendance' %}active{% endif %}">
+            <i class="fas fa-table-list"></i>
+            <span>All Attendance</span>
+          </a>
+          <a href="{{ url_for('admin_register') }}" class="nav-item {% if request.endpoint == 'admin_register' %}active{% endif %}">
+            <i class="fas fa-user-shield"></i>
+            <span>Add Admin</span>
+          </a>
+
+          <div class="nav-section-label">ACCOUNT</div>
+          <a href="{{ url_for('download_attendance_csv') }}" class="nav-item">
+            <i class="fas fa-download"></i>
+            <span>Export CSV</span>
+          </a>
+          <a href="{{ url_for('logout') }}" class="nav-item nav-logout">
+            <i class="fas fa-right-from-bracket"></i>
+            <span>Logout</span>
+          </a>
+      {% else %}
+          <div class="nav-section-label">ADMIN ACCESS</div>
+          <a href="{{ url_for('login') }}" class="nav-item {% if request.endpoint == 'login' %}active{% endif %}">
+            <i class="fas fa-lock"></i>
+            <span>Admin Login</span>
+          </a>
+      {% endif %}
+    </nav>
+
+    {% if session.get('logged_in') %}
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">
+        {{ session.get('display_name', 'U')[0] | upper }}
+      </div>
+      <div class="sidebar-user-info">
+        <p class="sidebar-user-name">{{ session.get('display_name', 'User') }}</p>
+        <p class="sidebar-user-role">{{ session.get('role', 'student') | capitalize }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+
+  <!-- Mobile Toggle -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <!-- Main Content -->
+  <main class="main-content" id="mainContent">
+
+    <!-- Flash Messages (Toast Style) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="toast-container" id="toastContainer">
+          {% for category, message in messages %}
+            <div class="toast toast-{{ category }}" data-aos="slide-in-right">
+              <div class="toast-icon">
+                {% if category == 'success' %}<i class="fas fa-circle-check"></i>
+                {% elif category == 'error' %}<i class="fas fa-circle-xmark"></i>
+                {% else %}<i class="fas fa-circle-info"></i>{% endif %}
+              </div>
+              <span class="toast-message">{{ message }}</span>
+              <button class="toast-close" onclick="this.parentElement.remove()">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({ duration: 600, once: true, offset: 30, easing: 'ease-out-cubic' });
+
+    // Sidebar toggle for mobile
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const mainContent = document.getElementById('mainContent');
+
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+
+    // Auto-dismiss toasts
+    document.querySelectorAll('.toast').forEach(toast => {
+      setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.4s ease forwards';
+        setTimeout(() => toast.remove(), 400);
+      }, 4500);
+    });
+
+    // Particle canvas
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    class Particle {
+      constructor() { this.reset(); }
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 1.5 + 0.3;
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.speedY = (Math.random() - 0.5) * 0.3;
+        this.opacity = Math.random() * 0.4 + 0.05;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 212, 255, ${this.opacity})`;
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

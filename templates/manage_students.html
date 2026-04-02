@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Students{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1>👥 Student Face Management</h1>
+      <p>Upload student photos to enroll them for face recognition attendance</p>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
+      <i class="fas fa-arrow-left"></i> Back to Admin
+    </a>
+  </div>
+</div>
+
+<div class="page-body">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+
+    <!-- LEFT: Add Student Form -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Upload Photo Panel -->
+      <div class="card" style="padding:28px;">
+        <h3 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-user-plus" style="color:var(--accent);"></i>
+          Add New Student
+        </h3>
+
+        <div class="form-group">
+          <label class="form-label">Student Full Name</label>
+          <div class="form-input-icon-wrapper">
+            <i class="fas fa-id-card form-input-icon"></i>
+            <input class="form-input" type="text" id="studentName" placeholder="e.g. Priyadeep Mitra">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Roll Number</label>
+          <div class="form-input-icon-wrapper">
+            <i class="fas fa-hashtag form-input-icon"></i>
+            <input class="form-input" type="text" id="rollNumber" placeholder="e.g. 22CS1001">
+          </div>
+        </div>
+
+        <!-- Photo Input Tabs -->
+        <div class="form-group">
+          <label class="form-label">Student Photo</label>
+          <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;">
+            <button type="button" class="tab-btn active" id="tabUpload"
+                    style="flex:1;padding:10px;background:var(--accent-dim);color:var(--accent);border:none;cursor:pointer;font-size:0.82rem;font-weight:600;font-family:var(--font);transition:all .2s;">
+              <i class="fas fa-upload"></i> Upload File
+            </button>
+            <button type="button" class="tab-btn" id="tabCamera"
+                    style="flex:1;padding:10px;background:transparent;color:var(--text-muted);border:none;cursor:pointer;font-size:0.82rem;font-weight:600;font-family:var(--font);transition:all .2s;">
+              <i class="fas fa-camera"></i> Live Camera
+            </button>
+          </div>
+
+          <!-- Upload Tab -->
+          <div id="uploadTab">
+            <div id="dropZone"
+                 style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative;">
+              <input type="file" id="fileInput" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;">
+              <i class="fas fa-image" style="font-size:2rem;color:var(--text-muted);opacity:.4;display:block;margin-bottom:10px;" id="dropIcon"></i>
+              <p id="dropText" style="font-size:0.82rem;color:var(--text-muted);margin:0;">
+                Click to browse or drag & drop a photo
+              </p>
+              <p style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">JPG, PNG, WEBP — Max 10MB</p>
+            </div>
+            <div id="uploadPreviewBox" style="display:none;margin-top:12px;position:relative;">
+              <img id="uploadPreview" style="width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);max-height:220px;object-fit:cover;" alt="Preview">
+              <button onclick="clearUpload()" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:var(--error-dim);color:var(--error);border:1px solid rgba(255,77,109,.3);border-radius:50%;cursor:pointer;font-size:12px;">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Camera Tab -->
+          <div id="cameraTab" style="display:none;">
+            <div style="border-radius:var(--radius-md);overflow:hidden;background:#000;position:relative;aspect-ratio:4/3;">
+              <video id="enrollVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+              <div id="enrollPlaceholder" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(7,11,20,.9);color:var(--text-muted);font-size:.82rem;">
+                <i class="fas fa-camera" style="font-size:2rem;opacity:.3;"></i>
+                <span>Click "Start Camera"</span>
+              </div>
+              <div id="camFlash" style="position:absolute;inset:0;background:white;opacity:0;pointer-events:none;transition:opacity .07s;"></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button class="btn btn-primary" style="flex:1;font-size:.82rem;padding:10px;" id="camStartBtn">
+                <i class="fas fa-play"></i> Start Camera
+              </button>
+              <button class="btn btn-success" style="flex:1;font-size:.82rem;padding:10px;display:none;" id="camCaptureBtn">
+                <i class="fas fa-camera-rotate"></i> Capture
+              </button>
+              <button class="btn btn-danger btn-sm" style="display:none;" id="camStopBtn">
+                <i class="fas fa-stop"></i>
+              </button>
+            </div>
+            <div id="camPreviewBox" style="display:none;margin-top:10px;position:relative;">
+              <img id="camPreview" style="width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);max-height:180px;object-fit:cover;" alt="Captured">
+              <button onclick="clearCamera()" style="position:absolute;top:6px;right:6px;width:26px;height:26px;background:var(--error-dim);color:var(--error);border:1px solid rgba(255,77,109,.3);border-radius:50%;cursor:pointer;font-size:11px;">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" id="finalImageData">
+
+        <button class="btn btn-primary btn-full" id="enrollBtn" disabled style="margin-top:4px;">
+          <i class="fas fa-check-circle"></i> Save Student
+        </button>
+
+        <div id="enrollResult" style="display:none;margin-top:14px;padding:13px 16px;border-radius:var(--radius-sm);font-size:.84rem;"></div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Enrolled Students List -->
+    <div class="table-container" data-aos="fade-up">
+      <div class="table-header">
+        <span class="table-title">
+          <i class="fas fa-users" style="color:var(--accent);margin-right:8px;"></i>
+          Enrolled Students
+          <span id="enrolledCount" style="font-size:.75rem;color:var(--text-muted);font-weight:400;margin-left:6px;"></span>
+        </span>
+        <input type="text" id="studentSearch" placeholder="Search students…"
+               style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-sm);
+                      padding:7px 12px;font-size:.8rem;color:var(--text-primary);font-family:var(--font);outline:none;max-width:200px;">
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="studentTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Roll No.</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody">
+            <tr>
+              <td colspan="5" style="text-align:center;padding:40px;">
+                <div class="spinner" style="margin:0 auto 10px;"></div>
+                <span style="color:var(--text-muted);font-size:.82rem;">Loading students…</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<canvas id="enrollCanvas" style="display:none;"></canvas>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let enrollStream = null;
+  let activeTab = 'upload';
+
+  // ─── Tab Switch ───────────────────────────────────────────────────
+  document.getElementById('tabUpload').addEventListener('click', () => switchTab('upload'));
+  document.getElementById('tabCamera').addEventListener('click', () => switchTab('camera'));
+
+  function switchTab(tab) {
+    activeTab = tab;
+    const uploadTab  = document.getElementById('uploadTab');
+    const cameraTab  = document.getElementById('cameraTab');
+    const btnUpload  = document.getElementById('tabUpload');
+    const btnCamera  = document.getElementById('tabCamera');
+
+    if (tab === 'upload') {
+      uploadTab.style.display = 'block';
+      cameraTab.style.display = 'none';
+      btnUpload.style.background = 'var(--accent-dim)';
+      btnUpload.style.color = 'var(--accent)';
+      btnCamera.style.background = 'transparent';
+      btnCamera.style.color = 'var(--text-muted)';
+      stopEnrollCamera();
+    } else {
+      uploadTab.style.display = 'none';
+      cameraTab.style.display = 'block';
+      btnCamera.style.background = 'var(--accent-dim)';
+      btnCamera.style.color = 'var(--accent)';
+      btnUpload.style.background = 'transparent';
+      btnUpload.style.color = 'var(--text-muted)';
+    }
+    document.getElementById('finalImageData').value = '';
+    checkEnrollReady();
+  }
+
+  // ─── File Upload ─────────────────────────────────────────────────
+  const dropZone  = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+
+  fileInput.addEventListener('change', handleFile);
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'var(--accent)';
+    dropZone.style.background = 'var(--accent-dim)';
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.style.borderColor = 'var(--border)';
+    dropZone.style.background = 'transparent';
+  });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'var(--border)';
+    dropZone.style.background = 'transparent';
+    if (e.dataTransfer.files[0]) handleFile({ target: { files: e.dataTransfer.files } });
+  });
+
+  function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const dataUrl = ev.target.result;
+      document.getElementById('uploadPreview').src = dataUrl;
+      document.getElementById('uploadPreviewBox').style.display = 'block';
+      dropZone.style.display = 'none';
+      document.getElementById('finalImageData').value = dataUrl;
+      checkEnrollReady();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearUpload() {
+    fileInput.value = '';
+    document.getElementById('uploadPreview').src = '';
+    document.getElementById('uploadPreviewBox').style.display = 'none';
+    dropZone.style.display = 'block';
+    document.getElementById('finalImageData').value = '';
+    checkEnrollReady();
+  }
+
+  // ─── Camera Capture ──────────────────────────────────────────────
+  const enrollVideo   = document.getElementById('enrollVideo');
+  const enrollCanvas  = document.getElementById('enrollCanvas');
+  const camFlash      = document.getElementById('camFlash');
+  const enrollPlaceh  = document.getElementById('enrollPlaceholder');
+
+  document.getElementById('camStartBtn').addEventListener('click', async () => {
+    try {
+      enrollStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      enrollVideo.srcObject = enrollStream;
+      enrollPlaceh.style.display = 'none';
+      document.getElementById('camStartBtn').style.display   = 'none';
+      document.getElementById('camCaptureBtn').style.display = 'flex';
+      document.getElementById('camStopBtn').style.display    = 'flex';
+      setTimeout(() => { document.getElementById('camCaptureBtn').disabled = false; }, 1200);
+    } catch(e) {
+      showResult('Camera access denied. Please allow camera and try again.', 'error');
+    }
+  });
+
+  document.getElementById('camCaptureBtn').addEventListener('click', () => {
+    camFlash.style.opacity = '0.6';
+    setTimeout(() => camFlash.style.opacity = '0', 150);
+    enrollCanvas.width  = enrollVideo.videoWidth;
+    enrollCanvas.height = enrollVideo.videoHeight;
+    enrollCanvas.getContext('2d').drawImage(enrollVideo, 0, 0);
+    const dataUrl = enrollCanvas.toDataURL('image/jpeg', 0.92);
+    document.getElementById('camPreview').src = dataUrl;
+    document.getElementById('camPreviewBox').style.display = 'block';
+    document.getElementById('finalImageData').value = dataUrl;
+    checkEnrollReady();
+  });
+
+  document.getElementById('camStopBtn').addEventListener('click', stopEnrollCamera);
+
+  function stopEnrollCamera() {
+    if (enrollStream) { enrollStream.getTracks().forEach(t => t.stop()); enrollStream = null; }
+    enrollVideo.srcObject = null;
+    enrollPlaceh.style.display = 'flex';
+    document.getElementById('camStartBtn').style.display   = 'flex';
+    document.getElementById('camCaptureBtn').style.display = 'none';
+    document.getElementById('camStopBtn').style.display    = 'none';
+  }
+
+  function clearCamera() {
+    document.getElementById('camPreview').src = '';
+    document.getElementById('camPreviewBox').style.display = 'none';
+    document.getElementById('finalImageData').value = '';
+    checkEnrollReady();
+  }
+
+  // ─── Form Validation ─────────────────────────────────────────────
+  ['studentName', 'rollNumber', 'finalImageData'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', checkEnrollReady);
+  });
+
+  function checkEnrollReady() {
+    const name  = document.getElementById('studentName').value.trim();
+    const roll  = document.getElementById('rollNumber').value.trim();
+    const img   = document.getElementById('finalImageData').value;
+    document.getElementById('enrollBtn').disabled = !(name && roll && img);
+  }
+
+  // ─── Save Student ────────────────────────────────────────────────
+  document.getElementById('enrollBtn').addEventListener('click', async () => {
+    const name  = document.getElementById('studentName').value.trim();
+    const roll  = document.getElementById('rollNumber').value.trim();
+    const img   = document.getElementById('finalImageData').value;
+
+    if (!name || !roll || !img) { showResult('Please fill all fields and add a photo.', 'error'); return; }
+
+    const btn = document.getElementById('enrollBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:15px;height:15px;margin:0;"></div> Saving…';
+
+    const body = new URLSearchParams({ student_name: name, roll_number: roll, image_data: img });
+
+    try {
+      const res  = await fetch('/admin_add_student', { method: 'POST', body });
+      const data = await res.json();
+      showResult(data.message, data.status);
+      if (data.status === 'success') {
+        // Clear form
+        document.getElementById('studentName').value = '';
+        document.getElementById('rollNumber').value  = '';
+        clearUpload();
+        clearCamera();
+        loadStudents();
+      }
+    } catch(e) {
+      showResult('Network error. Please try again.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check-circle"></i> Save Student';
+      checkEnrollReady();
+    }
+  });
+
+  // ─── Load Enrolled Students Table ────────────────────────────────
+  async function loadStudents() {
+    const tbody = document.getElementById('studentTableBody');
+    try {
+      const res  = await fetch('/get_enrolled_students');
+      const data = await res.json();
+      if (data.status !== 'success') return;
+
+      const students = data.students;
+      document.getElementById('enrolledCount').textContent = `(${students.length} enrolled)`;
+
+      if (students.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:48px;color:var(--text-muted);font-size:.82rem;">
+          <i class="fas fa-users-slash" style="font-size:2rem;opacity:.3;display:block;margin-bottom:10px;"></i>
+          No students enrolled yet. Add your first student above.
+        </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = students.map((s, i) => `
+        <tr data-search="${(s.name + s.roll).toLowerCase()}">
+          <td style="color:var(--text-muted);font-family:var(--font-mono);font-size:.75rem;">${i+1}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--accent-2),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:white;flex-shrink:0;">
+                ${s.name[0].toUpperCase()}
+              </div>
+              <span style="font-weight:500;color:var(--text-primary);">${s.name}</span>
+            </div>
+          </td>
+          <td style="font-family:var(--font-mono);font-size:.82rem;color:var(--accent);">${s.roll || '—'}</td>
+          <td><span class="badge badge-success"><i class="fas fa-check" style="font-size:9px;"></i> Enrolled</span></td>
+          <td>
+            <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.username}', '${s.name}')"
+                    style="font-size:.72rem;padding:5px 10px;">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+    } catch(e) { console.error('Load students error:', e); }
+  }
+
+  // ─── Search Filter ────────────────────────────────────────────────
+  document.getElementById('studentSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#studentTableBody tr[data-search]').forEach(row => {
+      row.style.display = row.dataset.search.includes(q) ? '' : 'none';
+    });
+  });
+
+  // ─── Delete Student ───────────────────────────────────────────────
+  async function deleteStudent(username, name) {
+    if (!confirm(`Delete ${name}? This will remove their face data and they won't be recognized.`)) return;
+    try {
+      const res  = await fetch('/delete_student', { method: 'POST', body: new URLSearchParams({ username }) });
+      const data = await res.json();
+      showResult(data.message, data.status);
+      if (data.status === 'success') loadStudents();
+    } catch(e) { showResult('Error deleting student.', 'error'); }
+  }
+
+  // ─── Result Toast ─────────────────────────────────────────────────
+  function showResult(msg, type) {
+    const colors = {
+      success: { bg:'var(--success-dim)', color:'var(--success)', border:'rgba(16,217,126,0.2)' },
+      error:   { bg:'var(--error-dim)',   color:'var(--error)',   border:'rgba(255,77,109,0.2)' },
+      info:    { bg:'var(--accent-dim)',  color:'var(--accent)',  border:'rgba(0,212,255,0.2)'  },
+    };
+    const s = colors[type] || colors.info;
+    const d = document.getElementById('enrollResult');
+    d.style.cssText = `display:block;background:${s.bg};color:${s.color};border:1px solid ${s.border};border-radius:var(--radius-sm);padding:13px 16px;font-size:.84rem;margin-top:14px;`;
+    d.textContent = msg;
+    setTimeout(() => { d.style.display = 'none'; }, 5000);
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────
+  loadStudents();
+  document.getElementById('studentName').addEventListener('input', checkEnrollReady);
+  document.getElementById('rollNumber').addEventListener('input', checkEnrollReady);
+</script>
+{% endblock %}
