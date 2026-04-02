@@ -1,84 +1,76 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
-</head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="{{ url_for('home') }}" class="navbar-brand">Smart Attendance</a>
-            <div class="navbar-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                {% if not session.get('logged_in') %}
-                    <a href="{{ url_for('register') }}">Register</a>
-                    <a href="{{ url_for('login') }}">Login</a>
-                {% endif %}
-                {% if session.get('logged_in') %}
-                    {# Show Dashboard and My Attendance ONLY if NOT admin #}
-                    {% if session.get('role') != 'admin' %}
-                        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                        <a href="{{ url_for('attendance') }}">My Attendance</a>
-                    {% endif %}
-                    
-                    {% if session.get('role') == 'admin' %}
-                        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-                        <a href="{{ url_for('enroll') }}">Enroll Face</a>
-                    {% endif %}
-                    <a href="{{ url_for('logout') }}">Logout</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="auth-form-container" data-aos="zoom-in">
-        <h2>Login to Your Account</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes">
-                    {% for category, message in messages %}
-                        <li class="message {{ category }}">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
-        <form method="post">
-            {# Add CSRF token for security (e.g., <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> if using Flask-WTF) #}
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <div class="form-group">
-                <button type="submit">Login</button>
-            </div>
-        </form>
-        <p class="switch-auth-link login-link">Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
-        <p class="switch-auth-link"><a href="{{ url_for('forgot_password') }}">Forgot Password?</a></p>
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="form-page">
+  <div class="form-container" data-aos="fade-up">
+    <div class="form-header">
+      <div class="form-icon">
+        <i class="fas fa-right-to-bracket"></i>
+      </div>
+      <h2>Welcome Back</h2>
+      <p>Sign in to your FaceID Pro account</p>
     </div>
 
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        AOS.init({
-            duration: 800,
-            once: true,
-            offset: 50,
-        });
-        // Adjust container margin-top for consistent layout with fixed navbar
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.querySelector('.container');
-            if (container) {
-                const navbarHeight = document.querySelector('.navbar').offsetHeight;
-                container.style.marginTop = `${navbarHeight + 40}px`; // Add some extra margin
-            }
-        });
-    </script>
-</body>
-</html>
+    <form method="POST" action="{{ url_for('login') }}" id="loginForm">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <div class="form-input-icon-wrapper">
+          <i class="fas fa-user form-input-icon"></i>
+          <input class="form-input" type="text" id="username" name="username"
+                 placeholder="Enter your username" required autocomplete="username">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="form-input-icon-wrapper" style="position:relative;">
+          <i class="fas fa-lock form-input-icon"></i>
+          <input class="form-input" type="password" id="password" name="password"
+                 placeholder="Enter your password" required autocomplete="current-password"
+                 style="padding-left:42px; padding-right:42px;">
+          <button type="button" id="togglePassword"
+                  style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0;transition:color .2s;">
+            <i class="fas fa-eye" id="toggleIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:-10px;margin-bottom:20px;">
+        <a href="{{ url_for('forgot_password') }}" class="link" style="font-size:0.8rem;" id="forgotPasswordLink">
+          Forgot password?
+        </a>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="loginSubmit">
+        <i class="fas fa-right-to-bracket"></i> Sign In
+      </button>
+    </form>
+
+    <div class="divider"></div>
+
+    <p class="text-center" style="font-size:0.85rem;color:var(--text-secondary);">
+      Don't have an account?
+      <a href="{{ url_for('register') }}" class="link" id="goToRegister">Create one</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const toggleBtn = document.getElementById('togglePassword');
+  const passInput = document.getElementById('password');
+  const toggleIcon = document.getElementById('toggleIcon');
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const isPass = passInput.type === 'password';
+      passInput.type = isPass ? 'text' : 'password';
+      toggleIcon.className = isPass ? 'fas fa-eye-slash' : 'fas fa-eye';
+      toggleBtn.style.color = isPass ? 'var(--accent)' : 'var(--text-muted)';
+    });
+  }
+</script>
+{% endblock %}

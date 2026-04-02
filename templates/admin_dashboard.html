@@ -1,119 +1,151 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
-</head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="{{ url_for('home') }}" class="navbar-brand">Smart Attendance</a>
-            <div class="navbar-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                {% if not session.get('logged_in') %}
-                    <a href="{{ url_for('register') }}">Register</a>
-                    <a href="{{ url_for('login') }}">Login</a>
-                {% endif %}
-                {% if session.get('logged_in') %}
-                    {# Show Dashboard and My Attendance ONLY if NOT admin #}
-                    {% if session.get('role') != 'admin' %}
-                        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                        <a href="{{ url_for('attendance') }}">My Attendance</a>
-                    {% endif %}
-                    {# Show Admin Dashboard and Enroll Face ONLY if admin #}
-                    {% if session.get('role') == 'admin' %}
-                        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-                        <a href="{{ url_for('enroll') }}">Enroll Face</a>
-                    {% endif %}
-                    {# Add Download Attendance Report for all logged-in users #}
-                   <a href="{{ url_for('download_attendance_csv') }}" class="button">Download Attendance Report</a>
-                    <a href="{{ url_for('logout') }}">Logout</a>
-                {% endif %}
+{% extends "base.html" %}
 
-                
-            </div>
-        </div>
-    </nav>
+{% block title %}Admin Dashboard{% endblock %}
 
-  <div class="container" data-aos="fade-up">
-    <h1>Welcome, {{ session.get('display_name', session.get('username')) }}!</h1>
-    <p class="subtitle" data-aos="fade-up" data-aos-delay="100">Admin Panel - Manage Users and Attendance</p>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul class="flashes">
-                {% for category, message in messages %}
-                    <li class="message {{ category }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
-    <div class="admin-actions" data-aos="zoom-in">
-        <div class="action-card">
-            <h3>Face Enrollment</h3>
-            <p>Enroll new user faces or update existing ones.</p>
-            <a href="{{ url_for('enroll') }}" class="button">Go to Enroll Face</a>
-        </div>
-    
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1>⚙️ Admin Control Panel</h1>
+      <p>Manage student enrollment, photos, and attendance records</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="{{ url_for('download_attendance_csv') }}" class="btn btn-secondary btn-sm" id="adminExportCsv">
+        <i class="fas fa-download"></i> Export CSV
+      </a>
+      <a href="{{ url_for('attendance') }}" class="btn btn-secondary btn-sm" id="adminViewAttendance">
+        <i class="fas fa-table-list"></i> All Records
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <!-- Quick Action Cards -->
+  <div class="action-grid" data-aos="fade-up">
+
+    <!-- Primary: Manage Students (biggest card) -->
+    <div class="action-card" style="border-color:rgba(0,212,255,0.2);background:linear-gradient(135deg,rgba(0,212,255,0.05),rgba(0,212,255,0.02));">
+      <div class="action-card-icon" style="background:var(--accent-dim);color:var(--accent);">
+        <i class="fas fa-users"></i>
+      </div>
+      <h3>Manage Students</h3>
+      <p>Upload student photos, enter name & roll number. The system encodes their face automatically.</p>
+      <a href="{{ url_for('manage_students') }}" class="btn btn-primary btn-sm" id="adminManageStudents">
+        <i class="fas fa-images"></i> Upload Photos
+      </a>
+    </div>
+
     <div class="action-card">
-    <h3>Download Report</h3>
-    <p>Get a CSV of all attendance records.</p>
-    <a href="{{ url_for('download_attendance_csv') }}" class="button">Download Attendance Report</a>
-</div>
+      <div class="action-card-icon" style="background:rgba(16,217,126,0.1);color:var(--success);">
+        <i class="fas fa-calendar-check"></i>
+      </div>
+      <h3>Attendance Logs</h3>
+      <p>View and filter complete attendance records across all students.</p>
+      <a href="{{ url_for('attendance') }}" class="btn btn-success btn-sm" id="adminLogsBtn">
+        <i class="fas fa-eye"></i> View Logs
+      </a>
+    </div>
 
-       <div class="new-students-section">
-  <h2>New Student Registrations</h2>
-  {% if new_users %}
-    <ul class="new-student-list">
-      {% for user in new_users %}
-        <li>
-          <span class="student-name">{{ user.display_name }}</span>
-          <span class="student-username">({{ user.username }})</span>
-          <form action="{{ url_for('mark_user_reviewed') }}" method="post" class="review-form">
-              <input type="hidden" name="username" value="{{ user.username }}">
-              <button type="submit" class="review-button">Mark as Reviewed</button>
-          </form>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="no-registrations">No new student registrations.</p>
-  {% endif %}
-</div>
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(251,191,36,0.1);color:var(--warning);">
+        <i class="fas fa-file-csv"></i>
+      </div>
+      <h3>Export Report</h3>
+      <p>Download a complete CSV attendance report for all students.</p>
+      <a href="{{ url_for('download_attendance_csv') }}" class="btn btn-sm" style="background:rgba(251,191,36,0.1);color:var(--warning);border:1px solid rgba(251,191,36,0.2);" id="adminExportBtn">
+        <i class="fas fa-download"></i> Download CSV
+      </a>
+    </div>
 
-        <div class="action-card">
-            <h3>Register New User</h3>
-            <p>Create new student or admin accounts.</p>
-            <a href="{{ url_for('admin_register') }}" class="button">Register User</a>
-        </div>
-        <div class="action-card">
-            <h3>View All Attendance</h3>
-            <p>Check attendance records for all users.</p>
-            <a href="{{ url_for('attendance') }}" class="button">View Attendance Log</a>
-        </div>
-        {# Add more admin action cards as needed #}
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(124,58,237,0.12);color:#a78bfa;">
+        <i class="fas fa-user-shield"></i>
+      </div>
+      <h3>Add Admin User</h3>
+      <p>Create a new administrator account for the system.</p>
+      <a href="{{ url_for('admin_register') }}" class="btn btn-secondary btn-sm" id="adminRegisterBtn">
+        <i class="fas fa-plus"></i> Add Admin
+      </a>
     </div>
   </div>
 
-  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-  <script>
-      AOS.init({
-          duration: 800,
-          once: true,
-          offset: 50,
-      });
+  <!-- Info Banner -->
+  <div data-aos="fade-up" data-aos-delay="100"
+       style="padding:18px 24px;background:var(--accent-dim);border:1px solid rgba(0,212,255,0.15);border-radius:var(--radius-md);display:flex;align-items:flex-start;gap:14px;margin-bottom:8px;">
+    <i class="fas fa-circle-info" style="color:var(--accent);font-size:1.2rem;flex-shrink:0;margin-top:2px;"></i>
+    <div>
+      <p style="font-size:0.85rem;font-weight:600;color:var(--accent);margin-bottom:4px;">How It Works</p>
+      <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;line-height:1.6;">
+        1. Go to <strong>Manage Students</strong> → Upload a photo for each student → Enter their <strong>Name & Roll Number</strong>.<br>
+        2. Students log in and open the dashboard → The camera <strong>automatically identifies them</strong> and marks attendance with their name & roll number.
+      </p>
+    </div>
+  </div>
 
-      // Adjust container margin-top for consistent layout with fixed navbar
-      document.addEventListener('DOMContentLoaded', () => {
-          const container = document.querySelector('.container');
-          if (container) {
-              const navbarHeight = document.querySelector('.navbar').offsetHeight;
-              container.style.marginTop = `${navbarHeight + 40}px`; // Add some extra margin
-          }
+  <!-- Quick Stats -->
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);" data-aos="fade-up" data-aos-delay="150">
+    <div class="stat-card accent">
+      <div class="stat-card-icon"><i class="fas fa-users"></i></div>
+      <div class="stat-card-value" id="totalStudents">—</div>
+      <div class="stat-card-label">Enrolled Students</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon"><i class="fas fa-calendar-day"></i></div>
+      <div class="stat-card-value" id="todayAttendance">—</div>
+      <div class="stat-card-label">Today's Attendance</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon"><i class="fas fa-database"></i></div>
+      <div class="stat-card-value" id="totalRecords">—</div>
+      <div class="stat-card-label">Total Records</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Load quick stats
+  async function loadAdminStats() {
+    try {
+      const [studRes, attRes] = await Promise.all([
+        fetch('/get_enrolled_students'),
+        fetch('/attendance')
+      ]);
+
+      const studData = await studRes.json();
+      if (studData.status === 'success') {
+        const el = document.getElementById('totalStudents');
+        if (el) el.textContent = studData.students.length;
+      }
+
+      // Parse attendance count from HTML (simplest approach)
+      const attHtml = await attRes.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(attHtml, 'text/html');
+      const rows = doc.querySelectorAll('.data-table tbody tr');
+      const total = document.getElementById('totalRecords');
+      if (total) total.textContent = rows.length;
+
+      // Today count
+      const today = new Date().toISOString().split('T')[0];
+      let todayCount = 0;
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 4) {
+          const dateCell = cells[cells.length - 3]?.textContent?.trim() || '';
+          if (dateCell === today) todayCount++;
+        }
       });
-  </script>
-</body>
-</html>
+      const todayEl = document.getElementById('todayAttendance');
+      if (todayEl) todayEl.textContent = todayCount;
+
+    } catch(e) { console.error('Admin stats error:', e); }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadAdminStats);
+</script>
+{% endblock %}

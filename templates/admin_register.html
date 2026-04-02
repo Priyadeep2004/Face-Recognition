@@ -1,93 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register New User (Admin)</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
-</head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="{{ url_for('home') }}" class="navbar-brand">Smart Attendance</a>
-            <div class="navbar-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                {% if not session.get('logged_in') %}
-                    <a href="{{ url_for('register') }}">Register</a>
-                    <a href="{{ url_for('login') }}">Login</a>
-                {% endif %}
-                {% if session.get('logged_in') %}
-                    {# Show Dashboard and My Attendance ONLY if NOT admin #}
-                    {% if session.get('role') != 'admin' %}
-                        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                        <a href="{{ url_for('attendance') }}">My Attendance</a>
-                    {% endif %}
-                    
-                    {% if session.get('role') == 'admin' %}
-                        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-                        <a href="{{ url_for('enroll') }}">Enroll Face</a>
-                    {% endif %}
-                    <a href="{{ url_for('logout') }}">Logout</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="auth-form-container" data-aos="zoom-in">
-        <h2>Register New User</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes">
-                    {% for category, message in messages %}
-                        <li class="message {{ category }}">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
-        <form method="post">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-            <div class="form-group">
-                <label for="display_name">Full Name (for attendance log):</label>
-                <input type="text" id="display_name" name="display_name" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <div class="form-group">
-                <label for="role">Role:</label>
-                <select id="role" name="role">
-                    <option value="student">Student</option>
-                    <option value="admin">Admin</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <button type="submit">Register User</button>
-            </div>
-        </form>
-        <a href="{{ url_for('admin_dashboard') }}" class="back-link">← Back to Admin Dashboard</a>
+{% block title %}Register User{% endblock %}
+
+{% block content %}
+<div class="form-page">
+  <div class="form-container" data-aos="fade-up" style="max-width:560px;">
+    <div class="form-header">
+      <div class="form-icon">
+        <i class="fas fa-user-shield"></i>
+      </div>
+      <h2>Register New User</h2>
+      <p>Create a student or administrator account</p>
     </div>
 
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        AOS.init({
-            duration: 800,
-            once: true,
-            offset: 50,
-        });
-        // Adjust container margin-top for consistent layout with fixed navbar
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.querySelector('.container');
-            if (container) {
-                const navbarHeight = document.querySelector('.navbar').offsetHeight;
-                container.style.marginTop = `${navbarHeight + 40}px`; // Add some extra margin
-            }
-        });
-    </script>
-</body>
-</html>
+    <form method="POST" action="{{ url_for('admin_register') }}" id="adminRegisterForm">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <div class="form-input-icon-wrapper">
+          <i class="fas fa-at form-input-icon"></i>
+          <input class="form-input" type="text" id="username" name="username"
+                 placeholder="Unique username" required minlength="3">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="display_name">Display Name</label>
+        <div class="form-input-icon-wrapper">
+          <i class="fas fa-id-card form-input-icon"></i>
+          <input class="form-input" type="text" id="display_name" name="display_name"
+                 placeholder="Full name" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="form-input-icon-wrapper" style="position:relative;">
+          <i class="fas fa-lock form-input-icon"></i>
+          <input class="form-input" type="password" id="password" name="password"
+                 placeholder="Set a password" required minlength="6"
+                 style="padding-left:42px;padding-right:42px;">
+          <button type="button" id="togglePass"
+                  style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0;">
+            <i class="fas fa-eye" id="toggleIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="role">Role</label>
+        <div style="position:relative;">
+          <select class="form-select" id="role" name="role" required>
+            <option value="student">Student</option>
+            <option value="admin">Administrator</option>
+          </select>
+          <i class="fas fa-chevron-down" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px;pointer-events:none;"></i>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:8px;" id="adminRegSubmit">
+        <i class="fas fa-user-plus"></i> Create Account
+      </button>
+    </form>
+
+    <div class="divider"></div>
+    <p class="text-center">
+      <a href="{{ url_for('admin_dashboard') }}" class="link" id="backToAdmin">
+        <i class="fas fa-arrow-left"></i> Back to Admin Dashboard
+      </a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const toggleBtn = document.getElementById('togglePass');
+  const passInput = document.getElementById('password');
+  const toggleIcon= document.getElementById('toggleIcon');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const show = passInput.type === 'password';
+      passInput.type = show ? 'text' : 'password';
+      toggleIcon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+      toggleBtn.style.color = show ? 'var(--accent)' : 'var(--text-muted)';
+    });
+  }
+</script>
+{% endblock %}

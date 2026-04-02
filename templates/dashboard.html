@@ -1,117 +1,150 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Student Dashboard 📸</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
-</head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="{{ url_for('home') }}" class="navbar-brand">Smart Attendance</a>
-            <div class="navbar-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                {% if not session.get('logged_in') %}
-                    <a href="{{ url_for('register') }}">Register</a>
-                    <a href="{{ url_for('login') }}">Login</a>
-                {% endif %}
-                {% if session.get('logged_in') %}
-                    {# Show Dashboard and My Attendance ONLY if NOT admin #}
-                    {% if session.get('role') != 'admin' %}
-                        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                        <a href="{{ url_for('attendance') }}">My Attendance</a>
-                    {% endif %}
-                    {# Show Admin Dashboard and Enroll Face ONLY if admin (this block exists in all for consistency, though only admin gets redirected) #}
-                    {% if session.get('role') == 'admin' %}
-                        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-                        <a href="{{ url_for('enroll') }}">Enroll Face</a>
-                    {% endif %}
-                    {# Add Download Attendance Report for all logged-in users #}
-                    <a href="{{ url_for('download_attendance_csv') }}">Download Attendance Report</a>
-                    {# Logout link position changed to AFTER Download Attendance Report #}
-                    <a href="{{ url_for('logout') }}">Logout</a>
-                {% endif %}
-            </div>
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1>📸 Mark Attendance</h1>
+      <p>Look directly at the camera and click <strong>Capture & Identify</strong></p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="{{ url_for('attendance') }}" class="btn btn-secondary btn-sm" id="viewAttendanceBtn">
+        <i class="fas fa-calendar-check"></i> View History
+      </a>
+      <a href="{{ url_for('download_attendance_csv') }}" class="btn btn-secondary btn-sm" id="downloadCsvBtn">
+        <i class="fas fa-download"></i> Export CSV
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <!-- Recognition Result Card (shown after successful recognition) -->
+  <div id="recognitionCard" style="display:none;" data-aos="fade-down">
+    <div style="background:linear-gradient(135deg,rgba(16,217,126,0.12),rgba(0,212,255,0.08));
+                border:1px solid rgba(16,217,126,0.25);border-radius:var(--radius-lg);
+                padding:28px 32px;margin-bottom:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div style="width:64px;height:64px;background:linear-gradient(135deg,var(--accent-2),var(--accent));
+                  border-radius:50%;display:flex;align-items:center;justify-content:center;
+                  font-size:1.5rem;font-weight:800;color:white;flex-shrink:0;" id="recognizedAvatar">?</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--success);margin-bottom:4px;">
+          <i class="fas fa-circle-check"></i> Attendance Marked Successfully
         </div>
-    </nav>
-
-  <div class="container" data-aos="fade-up">
-    {# Display Welcome message based on login status and user data #}
-    {% if session.get('logged_in') %}
-        <h1>Welcome, {{ session.get('display_name', username) }}!</h1>
-        <p class="subtitle" data-aos="fade-up" data-aos-delay="100">AI-powered facial recognition for seamless & secure attendance.</p>
-    {% else %}
-        <p class="subtitle" data-aos="fade-up">AI-powered facial recognition for seamless & secure attendance.</p>
-    {% endif %}
-    
-    {# Flask Flash Messages #}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul class="flashes">
-                {% for category, message in messages %}
-                    <li class="message {{ category }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
-
-    <div class="main-layout" data-aos="zoom-in">
-      <div class="video-wrapper">
-        <video id="videoElement" autoplay playsinline></video> {# Added playsinline for iOS #}
-        <div id="flashEffect" class="flash"></div>
-        <p id="statusMessage" class="status-message hidden"></p> 
-      </div>
-
-      <div class="side-panel">
-        <div class="controls">
-          <button id="startButton">Start Camera</button>
-          <button id="captureButton" style="display: none;">Capture Frame</button>
-          <button id="stopButton" style="display: none;">Stop Camera</button>
-        </div>
-
-        <div id="loadingSpinner" class="spinner hidden"></div>
-
-        <div id="recognitionResults">
-          <h3>Attendance Log</h3>
-          <p class="result-placeholder">No attendance recorded yet. Capture a frame to see results!</p>
-          <ul></ul> {# Attendance entries will be appended here by script.js #}
+        <div id="recognizedName" style="font-size:1.5rem;font-weight:800;color:var(--text-primary);line-height:1.2;">—</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap;">
+          <span style="font-family:var(--font-mono);font-size:0.875rem;color:var(--accent);
+                       background:var(--accent-dim);padding:3px 12px;border-radius:20px;border:1px solid rgba(0,212,255,0.2);">
+            Roll No: <strong id="recognizedRoll">—</strong>
+          </span>
+          <span style="font-size:0.8rem;color:var(--text-muted);">
+            <i class="fas fa-clock"></i> <span id="recognizedTime">—</span>
+          </span>
         </div>
       </div>
+      <div style="flex-shrink:0;">
+        <i class="fas fa-circle-check" style="font-size:2.5rem;color:var(--success);opacity:.8;"></i>
+      </div>
     </div>
-
-    <canvas id="canvasElement" style="display: none;"></canvas> {# Hidden canvas for image processing #}
-
-    {# REMOVED CHART CONTAINER AND CHART SCRIPT REFERENCE #}
-    {#
-    <div class="chart-container" data-aos="fade-up">
-      <h3>Your Daily Attendance</h3>
-      <canvas id="attendanceChart"></canvas>
-    </div>
-    #}
   </div>
 
-  {# Removed Chart.js script reference as the chart is no longer present #}
-  {# <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> #}
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
-  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-  <script>
-      AOS.init({
-          duration: 800,
-          once: true,
-          offset: 50,
-      });
+  <!-- Main Grid -->
+  <div class="dashboard-grid" data-aos="fade-up" data-aos-delay="100">
 
-      // Adjust container margin-top for consistent layout with fixed navbar
-      document.addEventListener('DOMContentLoaded', () => {
-          const container = document.querySelector('.container');
-          if (container) {
-              const navbarHeight = document.querySelector('.navbar').offsetHeight;
-              container.style.marginTop = `${navbarHeight + 40}px`; // Add some extra margin
-          }
-      });
-  </script>
-</body>
-</html>
+    <!-- Camera Panel -->
+    <div class="camera-panel">
+      <div class="camera-header">
+        <div class="camera-title">
+          <div class="camera-status-dot" id="statusDot"></div>
+          Live Camera Feed
+        </div>
+        <span id="liveBadge" style="display:none;" class="badge badge-warning">
+          <i class="fas fa-spinner fa-spin" style="font-size:10px;"></i> Processing…
+        </span>
+      </div>
+
+      <div class="camera-feed">
+        <video id="videoElement" autoplay playsinline muted></video>
+        <canvas id="overlayCanvas"></canvas>
+        <div class="flash-overlay" id="flashEffect"></div>
+        <div class="status-bar" id="statusBar">
+          <div class="spinner" id="statusSpinner" style="display:none;"></div>
+          <i class="fas fa-circle-info" id="statusIcon"></i>
+          <span id="statusText">Click "Start Camera" to begin</span>
+        </div>
+        <div class="camera-placeholder" id="cameraPlaceholder">
+          <i class="fas fa-camera"></i>
+          <span>Camera not started</span>
+          <span style="font-size:.75rem;opacity:.6;">Click the button below to enable</span>
+        </div>
+      </div>
+
+      <div class="camera-controls">
+        <button class="btn btn-primary" id="startButton" style="min-width:140px;">
+          <i class="fas fa-play"></i> Start Camera
+        </button>
+        <button class="btn btn-success" id="captureButton" style="display:none;min-width:160px;" disabled>
+          <i class="fas fa-camera"></i> Capture & Identify
+        </button>
+        <button class="btn btn-danger btn-sm" id="stopButton" style="display:none;">
+          <i class="fas fa-stop"></i>
+        </button>
+        <div id="processingSpinner" style="display:none;margin-left:auto;">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="side-panel">
+      <!-- Attendance Log -->
+      <div class="attendance-log">
+        <div class="attendance-log-header">
+          <h3><i class="fas fa-list-check" style="color:var(--accent);font-size:14px;"></i> Attendance Log</h3>
+          <a href="{{ url_for('attendance') }}" class="link" style="font-size:.75rem;" id="viewAllLink">View All</a>
+        </div>
+        <div class="attendance-log-body" id="attendanceLogBody">
+          <div class="log-empty">
+            <i class="fas fa-inbox"></i>
+            No records yet.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tips Card -->
+      <div class="card" style="padding:20px;">
+        <h4 style="font-size:.825rem;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-lightbulb" style="color:var(--warning);"></i> Tips for Best Results
+        </h4>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;">
+          <li style="font-size:.78rem;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-check" style="color:var(--success);margin-top:2px;flex-shrink:0;"></i>
+            Good, even lighting on your face
+          </li>
+          <li style="font-size:.78rem;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-check" style="color:var(--success);margin-top:2px;flex-shrink:0;"></i>
+            Face the camera directly, center-frame
+          </li>
+          <li style="font-size:.78rem;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-check" style="color:var(--success);margin-top:2px;flex-shrink:0;"></i>
+            Remove sunglasses or face obstructions
+          </li>
+          <li style="font-size:.78rem;color:var(--text-secondary);display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-check" style="color:var(--success);margin-top:2px;flex-shrink:0;"></i>
+            Keep still during the capture
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<canvas id="canvasElement" style="display:none;"></canvas>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+{% endblock %}

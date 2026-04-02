@@ -1,87 +1,142 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Attendance Records</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
-</head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="{{ url_for('home') }}" class="navbar-brand">Smart Attendance</a>
-            <div class="navbar-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                {% if not session.get('logged_in') %}
-                    <a href="{{ url_for('register') }}">Register</a>
-                    <a href="{{ url_for('login') }}">Login</a>
-                {% endif %}
-                {% if session.get('logged_in') %}
-                    {# Show Dashboard and My Attendance ONLY if NOT admin #}
-                    {% if session.get('role') != 'admin' %}
-                        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                        <a href="{{ url_for('attendance') }}">My Attendance</a>
-                    {% endif %}
-                    
-                    {% if session.get('role') == 'admin' %}
-                        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-                        <a href="{{ url_for('enroll') }}">Enroll Face</a>
-                    {% endif %}
-                    <a href="{{ url_for('logout') }}">Logout</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="container" data-aos="fade-up">
-        <h1>Attendance Records</h1>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes">
-                    {% for category, message in messages %}
-                        <li class="message {{ category }}">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
-        {% if records %}
-            <table class="attendance-table" data-aos="fade-up" data-aos-delay="100">
-                <thead>
-                    <tr style="background-color: #4CAF50; color: white;">
-                        <th style="padding: 12px; text-align: left;">Name</th>
-                        <th style="padding: 12px; text-align: left;">Timestamp</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for name, time in records %}
-                        <tr style="background-color: #f9f9f9;">
-                            <td style="padding: 12px; border-bottom: 1px solid #ddd;">{{ name }}</td>
-                            <td style="padding: 12px; border-bottom: 1px solid #ddd;">{{ time }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+{% block title %}Attendance Records{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1>
+        {% if session.get('role') == 'admin' %}
+          📋 All Attendance Records
         {% else %}
-            <p>No attendance records found.</p>
+          📋 My Attendance History
         {% endif %}
+      </h1>
+      <p>
+        {% if session.get('role') == 'admin' %}
+          Complete attendance log for all students
+        {% else %}
+          Your personal attendance records
+        {% endif %}
+      </p>
+    </div>
+    <a href="{{ url_for('download_attendance_csv') }}" class="btn btn-primary btn-sm" id="downloadCsvBtn">
+      <i class="fas fa-download"></i> Export CSV
+    </a>
+  </div>
+</div>
+
+<div class="page-body">
+  <div class="table-container" data-aos="fade-up">
+    <div class="table-header">
+      <span class="table-title">
+        <i class="fas fa-list-check" style="color:var(--accent);margin-right:8px;"></i>
+        Records
+        <span style="font-size:.78rem;color:var(--text-muted);font-weight:400;margin-left:8px;">
+          ({{ records|length }} total)
+        </span>
+      </span>
+      <!-- Search -->
+      <div style="position:relative;max-width:260px;flex:1;">
+        <i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+        <input type="text" id="tableSearch" placeholder="Search by name or roll no…"
+               style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-sm);
+                      padding:8px 12px 8px 34px;font-size:.82rem;color:var(--text-primary);font-family:var(--font);outline:none;transition:all .2s;">
+      </div>
     </div>
 
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        AOS.init({
-            duration: 800,
-            once: true,
-            offset: 50,
-        });
-        // Adjust container margin-top for consistent layout with fixed navbar
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.querySelector('.container');
-            if (container) {
-                const navbarHeight = document.querySelector('.navbar').offsetHeight;
-                container.style.marginTop = `${navbarHeight + 40}px`; // Add some extra margin
-            }
-        });
-    </script>
-</body>
-</html>
+    <div class="table-wrapper">
+      {% if records %}
+        <table class="data-table" id="attendanceTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Roll No.</th>
+              {% if session.get('role') == 'admin' %}<th>Username</th>{% endif %}
+              <th>Date</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in records %}
+              {% set name      = row[0] %}
+              {% set uname     = row[1] %}
+              {% set roll      = row[2] %}
+              {% set timestamp = row[3] %}
+              <tr>
+                <td style="color:var(--text-muted);font-family:var(--font-mono);font-size:.75rem;">
+                  {{ loop.index }}
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:30px;height:30px;background:linear-gradient(135deg,var(--accent-2),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:white;flex-shrink:0;">
+                      {{ name[0]|upper if name else '?' }}
+                    </div>
+                    <span style="font-weight:500;">{{ name or '—' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span style="font-family:var(--font-mono);font-size:.82rem;color:var(--accent);
+                               background:var(--accent-dim);padding:2px 9px;border-radius:20px;
+                               border:1px solid rgba(0,212,255,.15);">
+                    {{ roll if roll else '—' }}
+                  </span>
+                </td>
+                {% if session.get('role') == 'admin' %}
+                  <td style="font-family:var(--font-mono);font-size:.78rem;color:var(--text-muted);">
+                    {{ uname or '—' }}
+                  </td>
+                {% endif %}
+                <td style="font-family:var(--font-mono);font-size:.8rem;">
+                  {{ timestamp.split(' ')[0] if timestamp else '—' }}
+                </td>
+                <td style="font-family:var(--font-mono);font-size:.8rem;">
+                  {{ timestamp.split(' ')[1] if timestamp else '—' }}
+                </td>
+                <td>
+                  <span class="badge badge-success">
+                    <i class="fas fa-check" style="font-size:9px;"></i> Present
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="log-empty" style="padding:64px 20px;">
+          <i class="fas fa-calendar-xmark"></i>
+          No attendance records found.<br>
+          <a href="{{ url_for('dashboard') }}" class="link" style="margin-top:12px;display:inline-block;" id="markNowLink">
+            Mark attendance now →
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const searchInput = document.getElementById('tableSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      document.querySelectorAll('#attendanceTable tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+    searchInput.addEventListener('focus', () => {
+      searchInput.style.borderColor = 'var(--accent)';
+      searchInput.style.boxShadow = '0 0 0 3px rgba(0,212,255,0.1)';
+    });
+    searchInput.addEventListener('blur', () => {
+      searchInput.style.borderColor = 'var(--border)';
+      searchInput.style.boxShadow = 'none';
+    });
+  }
+</script>
+{% endblock %}

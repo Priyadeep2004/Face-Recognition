@@ -1,194 +1,236 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enroll New Face</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
-</head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="{{ url_for('home') }}" class="navbar-brand">Smart Attendance</a>
-            <div class="navbar-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                {% if not session.get('logged_in') %}
-                    <a href="{{ url_for('register') }}">Register</a>
-                    <a href="{{ url_for('login') }}">Login</a>
-                {% endif %}
-                {% if session.get('logged_in') %}
-                    {# Show Dashboard and My Attendance ONLY if NOT admin #}
-                    {% if session.get('role') != 'admin' %}
-                        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                        <a href="{{ url_for('attendance') }}">My Attendance</a>
-                    {% endif %}
-                    
-                    {% if session.get('role') == 'admin' %}
-                        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-                        <a href="{{ url_for('enroll') }}">Enroll Face</a>
-                    {% endif %}
-                    <a href="{{ url_for('logout') }}">Logout</a>
-                {% endif %}
-            </div>
+{% extends "base.html" %}
+
+{% block title %}Face Enrollment{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📸 Face Enrollment</h1>
+  <p>Capture and register a user's face for recognition</p>
+</div>
+
+<div class="page-body">
+  <div class="enroll-grid" data-aos="fade-up">
+
+    <!-- Camera Side -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="camera-header">
+        <div class="camera-title">
+          <div class="camera-status-dot" id="statusDot"></div>
+          Camera Preview
         </div>
-    </nav>
+        <span id="enrollBadge" class="badge" style="display:none;"></span>
+      </div>
 
-    <div class="auth-form-container" data-aos="zoom-in">
-        <h2>Enroll User Face</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes" id="flaskFlashes">
-                    {% for category, message in messages %}
-                        <li class="message {{ category }}">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
-        <div id="jsFlashes" class="flashes"></div> {# For messages from JS #}
+      <div class="enroll-camera-feed" id="cameraFeedWrapper">
+        <video id="videoElement" autoplay playsinline muted></video>
+        <canvas id="overlayCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+        <div class="flash-overlay" id="flashEffect"></div>
+        <div class="camera-placeholder" id="cameraPlaceholder">
+          <i class="fas fa-camera"></i>
+          <span>Camera not active</span>
+        </div>
+      </div>
 
-        <form id="enrollForm" method="post">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required>
-                <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">Must be an existing username.</small>
-            </div>
-            <div class="form-group">
-                <label for="admin_password">Admin Password for Confirmation:</label>
-                <input type="password" id="admin_password" name="admin_password" required>
-                <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">Re-enter your administrator password to confirm enrollment.</small>
-            </div>
-
-            <!-- File input for uploading image -->
-            <div class="form-group">
-                <label for="imageUpload">Upload Face Image:</label>
-                <input type="file" id="imageUpload" name="imageUpload" accept="image/*" required>
-                <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
-                    Please upload a clear, front-facing image of a single face.
-                </small>
-            </div>
-
-            <!-- Hidden input to store the base64 image data -->
-            <input type="hidden" id="imageDataInput" name="image_data">
-
-            <div class="form-group">
-                <button type="submit" id="submitEnrollButton">Enroll Face</button>
-            </div>
-        </form>
-        <a href="{{ url_for('admin_dashboard') }}" class="back-link">← Back to Admin Dashboard</a>
+      <div class="camera-controls">
+        <button class="btn btn-primary" id="startCameraBtn">
+          <i class="fas fa-play"></i> Start Camera
+        </button>
+        <button class="btn btn-success" id="captureBtn" style="display:none;" disabled>
+          <i class="fas fa-camera-rotate"></i> Capture Photo
+        </button>
+        <button class="btn btn-danger btn-sm" id="stopCameraBtn" style="display:none;">
+          <i class="fas fa-stop"></i> Stop
+        </button>
+      </div>
     </div>
 
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        AOS.init({
-            duration: 800,
-            once: true,
-            offset: 50,
-        });
+    <!-- Form Side -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.querySelector('.container');
-            if (container) {
-                const navbarHeight = document.querySelector('.navbar').offsetHeight;
-                container.style.marginTop = `${navbarHeight + 40}px`; // Add some extra margin
-            }
+      <!-- Captured Preview -->
+      <div class="card" style="padding:20px;" id="previewCard" style="display:none;">
+        <p style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">
+          Captured Image
+        </p>
+        <img id="capturedPreview" style="width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);display:none;" alt="Captured face">
+        <div style="display:none;text-align:center;padding:40px;color:var(--text-muted);" id="noCapture">
+          <i class="fas fa-image" style="font-size:2rem;opacity:.3;display:block;margin-bottom:8px;"></i>
+          No image captured yet
+        </div>
+      </div>
 
-            const imageUpload = document.getElementById('imageUpload');
-            const imageDataInput = document.getElementById('imageDataInput');
-            const enrollForm = document.getElementById('enrollForm');
-            const submitEnrollButton = document.getElementById('submitEnrollButton');
-            const jsFlashesContainer = document.getElementById('jsFlashes'); // New container for JS flashes
+      <!-- Enroll Form -->
+      <div class="card card-glass" style="padding:28px;">
+        <p style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:20px;">
+          Enrollment Details
+        </p>
 
-            /**
-             * Displays a flash message dynamically.
-             * @param {string} message - The message content.
-             * @param {string} category - The category (e.g., 'success', 'error', 'info').
-             */
-            function displayFlashMessage(message, category) {
-                const ul = jsFlashesContainer;
-                const li = document.createElement('li');
-                li.className = `message ${category}`;
-                li.textContent = message;
-                ul.appendChild(li);
+        <form id="enrollForm">
+          <div class="form-group">
+            <label class="form-label" for="enrollUsername">Target Username</label>
+            <div class="form-input-icon-wrapper">
+              <i class="fas fa-at form-input-icon"></i>
+              <input class="form-input" type="text" id="enrollUsername" name="username"
+                     placeholder="Username to enroll" required>
+            </div>
+          </div>
 
-                // Auto-hide after 5 seconds
-                setTimeout(() => {
-                    li.remove();
-                }, 5000);
-            }
+          <div class="form-group">
+            <label class="form-label" for="adminPassword">Admin Password</label>
+            <div class="form-input-icon-wrapper" style="position:relative;">
+              <i class="fas fa-shield-halved form-input-icon"></i>
+              <input class="form-input" type="password" id="adminPassword" name="admin_password"
+                     placeholder="Verify your password" required
+                     style="padding-left:42px;padding-right:42px;">
+              <button type="button" id="toggleAdminPass"
+                      style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0;">
+                <i class="fas fa-eye" id="adminPassIcon"></i>
+              </button>
+            </div>
+          </div>
 
-            // Handle image file selection
-            imageUpload.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        // Set the base64 string to the hidden input
-                        imageDataInput.value = e.target.result;
-                        submitEnrollButton.disabled = false; // Enable submit button
-                        displayFlashMessage('Image loaded successfully! Click "Enroll Face" to proceed.', 'info');
-                    };
-                    reader.onerror = (e) => {
-                        console.error("FileReader error:", e);
-                        displayFlashMessage('Error reading file. Please try again.', 'error');
-                        imageDataInput.value = ''; // Clear input on error
-                        submitEnrollButton.disabled = true;
-                    };
-                    reader.readAsDataURL(file); // Read file as base64 Data URL
-                } else {
-                    imageDataInput.value = '';
-                    submitEnrollButton.disabled = true;
-                    displayFlashMessage('No image selected.', 'info');
-                }
-            });
+          <input type="hidden" id="imageData" name="image_data">
 
-            // Handle form submission using Fetch API
-            enrollForm.addEventListener('submit', async (event) => {
-                event.preventDefault(); // Prevent default form submission
+          <button type="submit" class="btn btn-primary btn-full" id="enrollSubmitBtn" disabled>
+            <i class="fas fa-check-circle"></i> Enroll Face
+          </button>
+        </form>
 
-                if (!imageDataInput.value) {
-                    displayFlashMessage('Please upload a face image before enrolling.', 'error', false);
-                    return;
-                }
+        <!-- Result Message -->
+        <div id="enrollResult" style="display:none;margin-top:16px;padding:14px 16px;border-radius:var(--radius-sm);font-size:0.85rem;"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-                submitEnrollButton.disabled = true; // Disable button during submission
-                displayFlashMessage('Enrolling face...', 'info'); // Keep message visible
+<canvas id="canvasElement" style="display:none;"></canvas>
+{% endblock %}
 
-                const formData = new FormData();
-                formData.append('username', document.getElementById('username').value);
-                formData.append('admin_password', document.getElementById('admin_password').value);
-                formData.append('image_data', imageDataInput.value); // This is the base64 string
+{% block scripts %}
+<script>
+  const video       = document.getElementById('videoElement');
+  const startBtn    = document.getElementById('startCameraBtn');
+  const stopBtn     = document.getElementById('stopCameraBtn');
+  const captureBtn  = document.getElementById('captureBtn');
+  const flashEl     = document.getElementById('flashEffect');
+  const placeholder = document.getElementById('cameraPlaceholder');
+  const statusDot   = document.getElementById('statusDot');
+  const previewImg  = document.getElementById('capturedPreview');
+  const imageData   = document.getElementById('imageData');
+  const submitBtn   = document.getElementById('enrollSubmitBtn');
+  const resultDiv   = document.getElementById('enrollResult');
+  const enrollBadge = document.getElementById('enrollBadge');
+  const canvas      = document.getElementById('canvasElement');
+  let stream = null;
 
-                try {
-                    const response = await fetch('/enroll', {
-                        method: 'POST',
-                        body: formData // FormData will set the correct 'Content-Type' header
-                    });
+  // Toggle admin password
+  document.getElementById('toggleAdminPass').addEventListener('click', () => {
+    const inp = document.getElementById('adminPassword');
+    const icon = document.getElementById('adminPassIcon');
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+  });
 
-                    const result = await response.json(); // Assuming your Flask route returns JSON
+  startBtn.addEventListener('click', async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { width:640, height:480 } });
+      video.srcObject = stream;
+      placeholder.style.display = 'none';
+      startBtn.style.display = 'none';
+      captureBtn.style.display = 'inline-flex';
+      stopBtn.style.display   = 'inline-flex';
+      statusDot.classList.add('active');
+      setTimeout(() => { captureBtn.disabled = false; }, 1200);
+    } catch(e) {
+      showResult('Camera access denied. Please allow camera permissions.', 'error');
+    }
+  });
 
-                    // Clear existing JS flashes
-                    jsFlashesContainer.innerHTML = ''; 
+  stopBtn.addEventListener('click', () => {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+    stream = null;
+    placeholder.style.display = 'flex';
+    startBtn.style.display = 'inline-flex';
+    captureBtn.style.display = 'none';
+    stopBtn.style.display = 'none';
+    captureBtn.disabled = true;
+    statusDot.classList.remove('active');
+  });
 
-                    if (result.status === 'success') {
-                        displayFlashMessage(result.message, 'success');
-                        // Optionally redirect after success
-                        window.location.href = "{{ url_for('admin_dashboard') }}";
-                    } else {
-                        displayFlashMessage(result.message, 'error');
-                    }
-                } catch (error) {
-                    console.error('Network or server error during enrollment:', error);
-                    displayFlashMessage(`Network error: ${error.message}. Please check server connection.`, 'error');
-                } finally {
-                    submitEnrollButton.disabled = false; // Re-enable button
-                }
-            });
+  captureBtn.addEventListener('click', () => {
+    flashEl.classList.add('active');
+    setTimeout(() => flashEl.classList.remove('active'), 150);
 
-            // Initial state on page load
-            submitEnrollButton.disabled = true; // Disable submit until image is uploaded
-        });
-    </script>
-</body>
-</html>
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+    imageData.value = dataUrl;
+    previewImg.src = dataUrl;
+    previewImg.style.display = 'block';
+    submitBtn.disabled = false;
+
+    enrollBadge.textContent = '✓ Photo captured';
+    enrollBadge.className = 'badge badge-success';
+    enrollBadge.style.display = 'inline-flex';
+  });
+
+  // Pre-fill username from session storage (set by admin dashboard link)
+  window.addEventListener('DOMContentLoaded', () => {
+    const pre = sessionStorage.getItem('enrollUsername');
+    if (pre) {
+      document.getElementById('enrollUsername').value = pre;
+      sessionStorage.removeItem('enrollUsername');
+    }
+  });
+
+  document.getElementById('enrollForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!imageData.value) {
+      showResult('Please capture a photo first.', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div> Enrolling...';
+
+    const body = new URLSearchParams({
+      username: document.getElementById('enrollUsername').value,
+      admin_password: document.getElementById('adminPassword').value,
+      image_data: imageData.value
+    });
+
+    try {
+      const res = await fetch('/enroll', { method:'POST', body });
+      const data = await res.json();
+      showResult(data.message, data.status);
+      if (data.status === 'success') {
+        document.getElementById('enrollForm').reset();
+        imageData.value = '';
+        previewImg.style.display = 'none';
+        submitBtn.disabled = true;
+        enrollBadge.style.display = 'none';
+      }
+    } catch(err) {
+      showResult('Network error. Please check your connection.', 'error');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Enroll Face';
+    }
+  });
+
+  function showResult(msg, type) {
+    const colors = {
+      success: { bg:'var(--success-dim)', color:'var(--success)', border:'rgba(16,217,126,0.2)' },
+      error:   { bg:'var(--error-dim)',   color:'var(--error)',   border:'rgba(255,77,109,0.2)' },
+      info:    { bg:'var(--accent-dim)',  color:'var(--accent)',  border:'rgba(0,212,255,0.2)'  },
+    };
+    const s = colors[type] || colors.info;
+    resultDiv.style.cssText = `display:block;background:${s.bg};color:${s.color};border:1px solid ${s.border};border-radius:var(--radius-sm);padding:14px 16px;font-size:0.85rem;margin-top:16px;`;
+    resultDiv.textContent = msg;
+  }
+</script>
+{% endblock %}

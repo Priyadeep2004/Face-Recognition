@@ -1,87 +1,115 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
-</head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="{{ url_for('home') }}" class="navbar-brand">Smart Attendance</a>
-            <div class="navbar-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                {% if not session.get('logged_in') %}
-                    <a href="{{ url_for('register') }}">Register</a>
-                    <a href="{{ url_for('login') }}">Login</a>
-                {% endif %}
-                {% if session.get('logged_in') %}
-                    {# Show Dashboard and My Attendance ONLY if NOT admin #}
-                    {% if session.get('role') != 'admin' %}
-                        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                        <a href="{{ url_for('attendance') }}">My Attendance</a>
-                    {% endif %}
-                    
-                    {% if session.get('role') == 'admin' %}
-                        <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
-                        <a href="{{ url_for('enroll') }}">Enroll Face</a>
-                    {% endif %}
-                    <a href="{{ url_for('logout') }}">Logout</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="auth-form-container" data-aos="zoom-in">
-        <h2>Create Your Account</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes">
-                    {% for category, message in messages %}
-                        <li class="message {{ category }}">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
-        <form method="post">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-            <div class="form-group">
-                <label for="display_name">Full Name (for attendance log):</label>
-                <input type="text" id="display_name" name="display_name" required>
-                <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">This name will appear in the attendance log.</small>
-            </div>
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <div class="form-group">
-                <button type="submit">Register</button>
-            </div>
-        </form>
-        <p class="switch-auth-link register-link">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="form-page">
+  <div class="form-container" data-aos="fade-up" style="max-width:560px;">
+    <div class="form-header">
+      <div class="form-icon">
+        <i class="fas fa-user-plus"></i>
+      </div>
+      <h2>Create Account</h2>
+      <p>Register to start using FaceID Pro</p>
     </div>
-    
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        AOS.init({
-            duration: 800,
-            once: true,
-            offset: 50,
-        });
-        // Adjust container margin-top for consistent layout with fixed navbar
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.querySelector('.container');
-            if (container) {
-                const navbarHeight = document.querySelector('.navbar').offsetHeight;
-                container.style.marginTop = `${navbarHeight + 40}px`; // Add some extra margin
-            }
-        });
-    </script>
-</body>
-</html>
+
+    <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <div class="form-input-icon-wrapper">
+          <i class="fas fa-at form-input-icon"></i>
+          <input class="form-input" type="text" id="username" name="username"
+                 placeholder="Choose a unique username" required autocomplete="username" minlength="3">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="display_name">Display Name</label>
+        <div class="form-input-icon-wrapper">
+          <i class="fas fa-id-card form-input-icon"></i>
+          <input class="form-input" type="text" id="display_name" name="display_name"
+                 placeholder="Your full name" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="form-input-icon-wrapper" style="position:relative;">
+          <i class="fas fa-lock form-input-icon"></i>
+          <input class="form-input" type="password" id="password" name="password"
+                 placeholder="Create a strong password" required minlength="6"
+                 style="padding-left:42px; padding-right:42px;">
+          <button type="button" id="togglePassword"
+                  style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0;transition:color .2s;">
+            <i class="fas fa-eye" id="toggleIcon"></i>
+          </button>
+        </div>
+        <!-- Password strength indicator -->
+        <div style="margin-top:8px;" id="strengthBar">
+          <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
+            <div id="strengthFill" style="height:100%;width:0%;border-radius:2px;transition:all .3s;"></div>
+          </div>
+          <span id="strengthText" style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;display:block;"></span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:8px;" id="registerSubmit">
+        <i class="fas fa-rocket"></i> Create Account
+      </button>
+    </form>
+
+    <div class="divider"></div>
+
+    <p class="text-center" style="font-size:0.85rem;color:var(--text-secondary);">
+      Already have an account?
+      <a href="{{ url_for('login') }}" class="link" id="goToLogin">Sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Show/hide password
+  const toggleBtn = document.getElementById('togglePassword');
+  const passInput = document.getElementById('password');
+  const toggleIcon = document.getElementById('toggleIcon');
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const isPass = passInput.type === 'password';
+      passInput.type = isPass ? 'text' : 'password';
+      toggleIcon.className = isPass ? 'fas fa-eye-slash' : 'fas fa-eye';
+      toggleBtn.style.color = isPass ? 'var(--accent)' : 'var(--text-muted)';
+    });
+  }
+
+  // Password strength
+  passInput.addEventListener('input', () => {
+    const val = passInput.value;
+    const fill = document.getElementById('strengthFill');
+    const text = document.getElementById('strengthText');
+    let score = 0;
+    if (val.length >= 6)  score++;
+    if (val.length >= 10) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const levels = [
+      { label: '', color: '' },
+      { label: 'Weak', color: 'var(--error)' },
+      { label: 'Fair', color: 'var(--warning)' },
+      { label: 'Good', color: '#60a5fa' },
+      { label: 'Strong', color: 'var(--success)' },
+      { label: 'Very Strong', color: 'var(--success)' },
+    ];
+
+    const level = val.length === 0 ? 0 : Math.max(1, score);
+    fill.style.width  = `${(level / 5) * 100}%`;
+    fill.style.background = levels[level].color;
+    text.textContent = levels[level].label;
+    text.style.color = levels[level].color;
+  });
+</script>
+{% endblock %}
